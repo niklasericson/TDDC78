@@ -7,8 +7,7 @@
 #include <stdio.h>
 #include "blurfilter.h"
 #include "ppmio.h"
-#include <math.h> 
-
+#include <math.h>
 
 pixel* pix(pixel* image, const int xx, const int yy, const int xsize)
 {
@@ -28,7 +27,7 @@ void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, 
   pixel dst[MAX_PIXELS];
 
   for (y=ystart; y<ystop; y++) {
-    for (x=xstart; x<xstop; x++) {
+    for (x=0; x<xsize; x++) {
       r = w[0] * pix(src, x, y, xsize)->r;
       g = w[0] * pix(src, x, y, xsize)->g;
       b = w[0] * pix(src, x, y, xsize)->b;
@@ -57,7 +56,7 @@ void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, 
   }
 
   for (y=ystart; y<ystop; y++) {
-    for (x=xstart; x<xstop; x++) {
+    for (x=0; x<xsize; x++) {
       r = w[0] * pix(dst, x, y, xsize)->r;
       g = w[0] * pix(dst, x, y, xsize)->g;
       b = w[0] * pix(dst, x, y, xsize)->b;
@@ -88,7 +87,29 @@ void blurfilter(const int xsize, const int ysize, pixel* src, const int radius, 
 
 void splitblur(const int xsize, const int ysize, pixel* src, const int radius, const double *w){
 	
-	const int box = 2*radius+1;
+	const int n = 16;
+	
+	const int pixels = xsize * ysize;
+
+	const int pixels_per_split = ceil(pixels/n);
+
+	printf("pixels per split: %d\n", pixels_per_split);
+	printf("xsize: %d\n", xsize);
+
+	int i,ystart,ystop,xstart,xstop;
+
+	for (i = 0; i < n; i++) {
+
+		ystart = floor(pixels_per_split*i/xsize);
+		ystop = floor((pixels_per_split*(i+1))/xsize);
+		xstart = pixels_per_split*i - ystart*xsize;
+		xstop = pixels_per_split*(i+1) - ystop*xsize;
+
+		printf("Xstart: %d, Xstop %d, Ystart: %d, Ystop: %d \n",xstart,xstop,ystart,ystop);
+
+		blurfilter(xsize, ysize, src, radius, w, xstart, ystart, xstop, ystop);
+	}
+/*
 	int y, x;
 	int ymax = ceil(ysize/box);
 	int xmax = ceil(xsize/box);
@@ -99,7 +120,7 @@ void splitblur(const int xsize, const int ysize, pixel* src, const int radius, c
 			//dela upp i rader
 		}
 	}
-
+*/
 }
 
 
