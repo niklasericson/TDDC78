@@ -15,23 +15,28 @@
 #define MAX_RAD 1000
 
 int main (int argc, char ** argv) {
-   int radius;
-    int xsize, ysize, colmax;
+    
+    /* Definitions */
+
+    int radius;
+    int xsize, ysize, colmax, lsize_last_core, rows_per_core, remaining_rows;
+    int size[1], myid, np, lsize;
     pixel src[MAX_PIXELS];
     struct timespec stime, etime;
 
 
     MPI_Comm com, scatter_com;
+
     com = MPI_COMM_WORLD;
     MPI_Init(&argc, &argv);
 
-    int myid, np, lsize;
     MPI_Comm_rank(MPI_COMM_WORLD, &myid);
     MPI_Comm_size(com, &np);
 
-    printf("np: %d \n", np);
-
     MPI_Status status;
+
+    /* Putting all processes in scatter_com exepct last. This is so that scatter
+        will scatter the image evenly even if ysize/np isn't an integer. */
 
     int color;
     int key;
@@ -90,7 +95,8 @@ int main (int argc, char ** argv) {
         clock_gettime(CLOCK_REALTIME, &stime);
     #endif
 
-    int size[1];
+    // Create array of xsize and ysize and broadcast to all cores.
+
     size[0] = xsize;
     size[1] = ysize;
 
@@ -99,22 +105,19 @@ int main (int argc, char ** argv) {
     xsize = size[0];
     ysize = size[1];
 
-    // lsize = Number of rows for every process execpt np - 1, wich will 
-    // contain the remaining rows (since ysize/(np - 1) might not be whole number.
-    int rows_per_core = ysize/np;
 
-    // Reamining rows for last core to process
-    int remaining_rows = ysize % np + rows_per_core;
+    /* lsize = Number of rows for every process execpt np - 1, wich will contain
+        the remaining rows (since ysize/(np - 1) might not be whole number. */
+    rows_per_core = ysize/np;
 
-    printf("ysize: %d, rows_per_core: %d, remaining_rows: %d \n", ysize, rows_per_core, remaining_rows);
+    /* Reamining rows for last core to process
+        (Performance anlysis: remaining_rows < rows_per_core + np) */
+    remaining_rows = ysize % np + rows_per_core;
 
     lsize = rows_per_core*xsize;
-    int lsize_last_core = remaining_rows*xsize;
+    lsize_last_core = remaining_rows*xsize;
 
     register int last_start_pos = lsize*(np - 1);
-
-    printf("lsize: %d\n", lsize);
-    printf("Number of pixels: %d\n", xsize*ysize);
 
     pixel* local;
 
@@ -132,31 +135,7 @@ int main (int argc, char ** argv) {
                     MPI_CHAR, 0, 10, com, &status);
     }
 
-    printf("ID: %d\n",myid);
-
-    
-    if (myid == 0) {
-        if (write_ppm ("im1procces0.ppm", xsize, rows_per_core, (char *) local) != 0) {
-            printf("Write failed in scatter check\n");
-        }
-    }
-    else if (myid == 1) {
-        if (write_ppm ("im1procces1.ppm", xsize, rows_per_core, (char *) local) != 0) {
-            printf("Write failed in scatter check\n");
-        }
-    }
-    else if (myid == 2) {
-        if (write_ppm ("im1procces2.ppm", xsize, rows_per_core, (char *) local) != 0) {
-            printf("Write failed in scatter check\n");
-        }
-    }
-    else if (myid == 3) {
-        if (write_ppm ("im1procces3.ppm", xsize, remaining_rows, (char *) local) != 0) {
-            printf("Write failed in scatter check\n");
-        }
-    }
-
-
+    /* Filtering goes here */
     //splitblur(xsize, ysize, src, radius, w);
 
 
